@@ -6,10 +6,13 @@ import { Badge } from '../components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { ScrollArea } from '../components/ui/scroll-area'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable'
-import { ArrowLeft, Play, Download, Code, Eye, Sparkles, FileText, Zap, Terminal, Globe, Settings } from 'lucide-react'
+import { ArrowLeft, Play, Download, Code, Eye, Sparkles, FileText, Zap, Terminal, Globe, Settings, Bot, MessageSquare } from 'lucide-react'
 import { blink } from '../blink/client'
 import { Project, CodeFile } from '../types'
 import { LocalProjectStorage } from '../lib/storage'
+import CodeEditor from '../components/CodeEditor'
+import FileExplorer from '../components/FileExplorer'
+import AIAgentBuilder from '../components/AIAgentBuilder'
 
 export default function ProjectBuilder() {
   const { id } = useParams()
@@ -354,6 +357,11 @@ export default function Dashboard() {
                     <Download className="h-4 w-4 mr-2" />
                     Download
                   </Button>
+                  <div className="w-px h-6 bg-gray-300"></div>
+                  <Button variant="outline" size="sm">
+                    <Bot className="h-4 w-4 mr-2" />
+                    AI Assistant
+                  </Button>
                 </>
               )}
             </div>
@@ -401,35 +409,29 @@ export default function Dashboard() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* File Explorer */}
             <ResizablePanel defaultSize={20} minSize={15}>
-              <div className="h-full border-r bg-gray-50">
-                <div className="p-4 border-b bg-white">
-                  <h3 className="font-semibold text-sm text-gray-900">Project Files</h3>
-                </div>
-                <ScrollArea className="h-[calc(100%-4rem)]">
-                  <div className="p-2">
-                    {generatedFiles.map((file, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedFile(file)}
-                        className={`w-full text-left p-3 rounded-lg text-sm hover:bg-white transition-colors ${
-                          selectedFile?.path === file.path ? 'bg-white shadow-sm border' : ''
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <FileText className="h-4 w-4 text-gray-500" />
-                          <span className="font-medium text-gray-900">{file.path}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
+              <FileExplorer
+                files={generatedFiles}
+                selectedFile={selectedFile}
+                onFileSelect={setSelectedFile}
+                onFileCreate={(path, type) => {
+                  console.log('Create file:', path, type)
+                  // TODO: Implement file creation
+                }}
+                onFileDelete={(path) => {
+                  console.log('Delete file:', path)
+                  // TODO: Implement file deletion
+                }}
+                onFileRename={(oldPath, newPath) => {
+                  console.log('Rename file:', oldPath, newPath)
+                  // TODO: Implement file renaming
+                }}
+              />
             </ResizablePanel>
 
             <ResizableHandle />
 
-            {/* Code Editor */}
-            <ResizablePanel defaultSize={80}>
+            {/* Main Content Area */}
+            <ResizablePanel defaultSize={60}>
               <Tabs defaultValue="code" className="h-full">
                 <div className="border-b px-4 bg-white">
                   <TabsList className="bg-gray-100">
@@ -449,25 +451,17 @@ export default function Dashboard() {
                 </div>
 
                 <TabsContent value="code" className="h-[calc(100%-3rem)] m-0">
-                  {selectedFile ? (
-                    <div className="h-full">
-                      <div className="border-b px-4 py-3 bg-gray-50">
-                        <span className="text-sm font-mono text-gray-700">{selectedFile.path}</span>
-                      </div>
-                      <ScrollArea className="h-[calc(100%-3rem)]">
-                        <pre className="p-6 text-sm font-mono leading-relaxed">
-                          <code className="text-gray-800">{selectedFile.content}</code>
-                        </pre>
-                      </ScrollArea>
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-gray-500 bg-gray-50">
-                      <div className="text-center">
-                        <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                        <p>Select a file to view its contents</p>
-                      </div>
-                    </div>
-                  )}
+                  <CodeEditor
+                    file={selectedFile}
+                    onFileChange={(updatedFile) => {
+                      setGeneratedFiles(prev => 
+                        prev.map(file => 
+                          file.path === updatedFile.path ? updatedFile : file
+                        )
+                      )
+                    }}
+                    readOnly={false}
+                  />
                 </TabsContent>
 
                 <TabsContent value="preview" className="h-[calc(100%-3rem)] m-0">
@@ -502,6 +496,24 @@ export default function Dashboard() {
                   </div>
                 </TabsContent>
               </Tabs>
+            </ResizablePanel>
+
+            <ResizableHandle />
+
+            {/* AI Assistant Panel */}
+            <ResizablePanel defaultSize={20} minSize={15}>
+              <AIAgentBuilder
+                onCodeGenerated={(code, files) => {
+                  console.log('Code generated:', code, files)
+                  if (files && files.length > 0) {
+                    setGeneratedFiles(prev => [...prev, ...files])
+                  }
+                }}
+                onProjectUpdate={(update) => {
+                  console.log('Project update:', update)
+                  // TODO: Handle project updates
+                }}
+              />
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (

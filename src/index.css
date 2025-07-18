@@ -114,6 +114,18 @@
     background: rgb(0 0 0 / 40%);
     border: 1px solid rgb(255 255 255 / 10%);
   }
+
+  .step-blue {
+    @apply bg-blue-100 text-blue-600;
+  }
+
+  .step-purple {
+    @apply bg-purple-100 text-purple-600;
+  }
+
+  .step-green {
+    @apply bg-green-100 text-green-600;
+  }
 }
 
 /* Custom scrollbar */
