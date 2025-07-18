@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label'
 import { Plus, Code, Clock, CheckCircle, AlertCircle, ExternalLink, User, LogOut } from 'lucide-react'
 import { blink } from '../blink/client'
 import { Project } from '../types'
+import { LocalProjectStorage } from '../lib/storage'
 import { useNavigate } from 'react-router-dom'
 
 export default function Dashboard() {
@@ -37,10 +38,9 @@ export default function Dashboard() {
 
   const loadProjects = async () => {
     try {
-      const userProjects = await blink.db.projects.list({
-        where: { userId: (await blink.auth.me()).id },
-        orderBy: { createdAt: 'desc' }
-      })
+      const user = await blink.auth.me()
+      // Use localStorage temporarily until database is available
+      const userProjects = LocalProjectStorage.getProjects(user.id)
       setProjects(userProjects)
     } catch (error) {
       console.error('Failed to load projects:', error)
@@ -55,15 +55,20 @@ export default function Dashboard() {
     setIsCreating(true)
     try {
       const user = await blink.auth.me()
-      const project = await blink.db.projects.create({
+      // Use localStorage temporarily until database is available
+      const project = LocalProjectStorage.saveProject({
+        id: '', // Will be generated
         name: newProject.name,
         description: newProject.description,
         techStack: newProject.tech_stack,
         userId: user.id,
         status: 'generating',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        createdAt: '',
+        updatedAt: ''
       })
+      
+      // Reset form
+      setNewProject({ name: '', description: '', tech_stack: '' })
       
       // Navigate to project builder
       navigate(`/project/${project.id}`)
@@ -155,6 +160,11 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-1">
               Manage your AI-generated applications
             </p>
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Projects are temporarily stored locally. Database setup in progress.
+              </p>
+            </div>
           </div>
           
           <Dialog>

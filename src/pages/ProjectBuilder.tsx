@@ -10,6 +10,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../compone
 import { ArrowLeft, Play, Download, Code, Eye, Sparkles, FileText, Zap } from 'lucide-react'
 import { blink } from '../blink/client'
 import { Project, CodeFile } from '../types'
+import { LocalProjectStorage } from '../lib/storage'
 
 export default function ProjectBuilder() {
   const { id } = useParams()
@@ -23,16 +24,15 @@ export default function ProjectBuilder() {
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
-      const projectData = await blink.db.projects.list({
-        where: { id: projectId }
-      })
+      // Use localStorage temporarily until database is available
+      const projectData = LocalProjectStorage.getProject(projectId)
       
-      if (projectData.length > 0) {
-        setProject(projectData[0])
-        if (projectData[0].generatedCode) {
+      if (projectData) {
+        setProject(projectData)
+        if (projectData.generatedCode) {
           // Parse existing generated code
           try {
-            const files = JSON.parse(projectData[0].generatedCode)
+            const files = JSON.parse(projectData.generatedCode)
             setGeneratedFiles(files)
             if (files.length > 0) {
               setSelectedFile(files[0])
@@ -81,21 +81,19 @@ export default function ProjectBuilder() {
       setGeneratedFiles(files)
       setSelectedFile(files[0])
 
-      // Update project status
-      await blink.db.projects.update(projectData.id, {
+      // Update project status using localStorage
+      const updatedProject = LocalProjectStorage.updateProject(projectData.id, {
         status: 'completed',
-        generatedCode: JSON.stringify(files),
-        updatedAt: new Date().toISOString()
+        generatedCode: JSON.stringify(files)
       })
 
-      setProject(prev => prev ? { ...prev, status: 'completed' } : null)
+      setProject(updatedProject)
     } catch (error) {
       console.error('Generation failed:', error)
-      await blink.db.projects.update(projectData.id, {
-        status: 'error',
-        updatedAt: new Date().toISOString()
+      const updatedProject = LocalProjectStorage.updateProject(projectData.id, {
+        status: 'error'
       })
-      setProject(prev => prev ? { ...prev, status: 'error' } : null)
+      setProject(updatedProject)
     } finally {
       setIsGenerating(false)
       setGenerationProgress('')

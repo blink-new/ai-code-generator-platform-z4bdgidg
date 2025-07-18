@@ -2,18 +2,18 @@ export interface Project {
   id: string
   name: string
   description: string
-  tech_stack: string
-  created_at: string
-  updated_at: string
-  user_id: string
+  techStack: string  // Changed from tech_stack
+  createdAt: string  // Changed from created_at
+  updatedAt: string  // Changed from updated_at
+  userId: string     // Changed from user_id
   status: 'generating' | 'completed' | 'error'
-  generated_code?: string
-  preview_url?: string
+  generatedCode?: string  // Changed from generated_code
+  previewUrl?: string     // Changed from preview_url
 }
 
 export interface GenerationRequest {
   description: string
-  tech_stack: string
+  techStack: string  // Changed from tech_stack
   features?: string[]
 }
 
@@ -24,9 +24,9 @@ export interface CodeFile {
 }
 
 export interface GenerationResponse {
-  project_id: string
+  projectId: string  // Changed from project_id
   files: CodeFile[]
-  preview_url: string
+  previewUrl: string  // Changed from preview_url
   status: 'success' | 'error'
   message?: string
 }
