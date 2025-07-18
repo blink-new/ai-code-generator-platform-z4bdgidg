@@ -83,7 +83,8 @@ module.exports = {
   		},
   		fontFamily: {
   			sans: [
-  				'Inter var',
+  				'Inter',
+  				'system-ui',
   				'sans-serif'
   			]
   		},

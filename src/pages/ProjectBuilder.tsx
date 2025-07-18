@@ -4,10 +4,9 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
-import { Textarea } from '../components/ui/textarea'
 import { ScrollArea } from '../components/ui/scroll-area'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '../components/ui/resizable'
-import { ArrowLeft, Play, Download, Code, Eye, Sparkles, FileText, Zap } from 'lucide-react'
+import { ArrowLeft, Play, Download, Code, Eye, Sparkles, FileText, Zap, Terminal, Globe, Settings } from 'lucide-react'
 import { blink } from '../blink/client'
 import { Project, CodeFile } from '../types'
 import { LocalProjectStorage } from '../lib/storage'
@@ -21,16 +20,15 @@ export default function ProjectBuilder() {
   const [selectedFile, setSelectedFile] = useState<CodeFile | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generationProgress, setGenerationProgress] = useState('')
+  const [generationStep, setGenerationStep] = useState(0)
 
   const loadProject = useCallback(async (projectId: string) => {
     try {
-      // Use localStorage temporarily until database is available
       const projectData = LocalProjectStorage.getProject(projectId)
       
       if (projectData) {
         setProject(projectData)
         if (projectData.generatedCode) {
-          // Parse existing generated code
           try {
             const files = JSON.parse(projectData.generatedCode)
             setGeneratedFiles(files)
@@ -57,10 +55,9 @@ export default function ProjectBuilder() {
 
   const startGeneration = async (projectData: Project) => {
     setIsGenerating(true)
-    setGenerationProgress('Analyzing your requirements...')
+    setGenerationStep(0)
     
     try {
-      // Simulate AI code generation with streaming updates
       const steps = [
         'Analyzing your requirements...',
         'Designing the application architecture...',
@@ -73,15 +70,14 @@ export default function ProjectBuilder() {
 
       for (let i = 0; i < steps.length; i++) {
         setGenerationProgress(steps[i])
+        setGenerationStep(i + 1)
         await new Promise(resolve => setTimeout(resolve, 2000))
       }
 
-      // Generate mock code files based on tech stack
       const files = generateMockFiles(projectData.techStack, projectData.description)
       setGeneratedFiles(files)
       setSelectedFile(files[0])
 
-      // Update project status using localStorage
       const updatedProject = LocalProjectStorage.updateProject(projectData.id, {
         status: 'completed',
         generatedCode: JSON.stringify(files)
@@ -97,6 +93,7 @@ export default function ProjectBuilder() {
     } finally {
       setIsGenerating(false)
       setGenerationProgress('')
+      setGenerationStep(0)
     }
   }
 
@@ -236,7 +233,7 @@ export default function Dashboard() {
           path: 'package.json',
           language: 'json',
           content: `{
-  "name": "${project?.name.toLowerCase().replace(/\s+/g, '-')}",
+  "name": "${project?.name.toLowerCase().replace(/\\s+/g, '-')}",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
@@ -278,10 +275,9 @@ export default function Dashboard() {
   }
 
   const handleDownload = () => {
-    // Create a simple download of the generated files
     const content = generatedFiles.map(file => 
-      `// ${file.path}\n${file.content}\n\n`
-    ).join('\n')
+      `// ${file.path}\\n${file.content}\\n\\n`
+    ).join('\\n')
     
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
@@ -296,18 +292,21 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading project...</p>
+        </div>
       </div>
     )
   }
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Project not found</h2>
-          <Button onClick={() => navigate('/dashboard')}>
+          <h2 className="text-2xl font-bold mb-4">Project not found</h2>
+          <Button onClick={() => navigate('/dashboard')} className="bg-black hover:bg-gray-800">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -317,26 +316,27 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-gray-600">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
+              <div className="h-6 w-px bg-gray-300"></div>
               <div>
-                <h1 className="text-lg font-semibold">{project.name}</h1>
+                <h1 className="text-lg font-semibold text-gray-900">{project.name}</h1>
                 <div className="flex items-center space-x-2">
                   <Badge variant="secondary" className="text-xs">
                     {project.techStack}
                   </Badge>
-                  <Badge className={`text-xs ${
-                    project.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    project.status === 'generating' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
+                  <Badge className={`text-xs border ${
+                    project.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                    project.status === 'generating' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    'bg-red-50 text-red-700 border-red-200'
                   }`}>
                     {project.status}
                   </Badge>
@@ -364,25 +364,34 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="h-[calc(100vh-4rem)]">
         {isGenerating ? (
-          <div className="h-full flex items-center justify-center">
-            <Card className="w-full max-w-md">
-              <CardHeader className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+          <div className="h-full flex items-center justify-center bg-gray-50">
+            <Card className="w-full max-w-lg mx-4">
+              <CardHeader className="text-center pb-6">
+                <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Sparkles className="h-10 w-10 text-white animate-pulse" />
                 </div>
-                <CardTitle>Generating Your App</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl">Generating Your App</CardTitle>
+                <CardDescription className="text-base">
                   Our AI is creating your complete application...
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span className="text-sm">{generationProgress}</span>
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                    <span className="text-sm font-medium">{generationProgress}</span>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Progress</span>
+                      <span>{generationStep}/7</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-black h-2 rounded-full transition-all duration-500" 
+                        style={{ width: `${(generationStep / 7) * 100}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -392,9 +401,9 @@ export default function Dashboard() {
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* File Explorer */}
             <ResizablePanel defaultSize={20} minSize={15}>
-              <div className="h-full border-r bg-muted/30">
-                <div className="p-4 border-b">
-                  <h3 className="font-semibold text-sm">Project Files</h3>
+              <div className="h-full border-r bg-gray-50">
+                <div className="p-4 border-b bg-white">
+                  <h3 className="font-semibold text-sm text-gray-900">Project Files</h3>
                 </div>
                 <ScrollArea className="h-[calc(100%-4rem)]">
                   <div className="p-2">
@@ -402,13 +411,13 @@ export default function Dashboard() {
                       <button
                         key={index}
                         onClick={() => setSelectedFile(file)}
-                        className={`w-full text-left p-2 rounded text-sm hover:bg-muted transition-colors ${
-                          selectedFile?.path === file.path ? 'bg-muted' : ''
+                        className={`w-full text-left p-3 rounded-lg text-sm hover:bg-white transition-colors ${
+                          selectedFile?.path === file.path ? 'bg-white shadow-sm border' : ''
                         }`}
                       >
-                        <div className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4" />
-                          <span>{file.path}</span>
+                        <div className="flex items-center space-x-3">
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium text-gray-900">{file.path}</span>
                         </div>
                       </button>
                     ))}
@@ -422,8 +431,8 @@ export default function Dashboard() {
             {/* Code Editor */}
             <ResizablePanel defaultSize={80}>
               <Tabs defaultValue="code" className="h-full">
-                <div className="border-b px-4">
-                  <TabsList>
+                <div className="border-b px-4 bg-white">
+                  <TabsList className="bg-gray-100">
                     <TabsTrigger value="code" className="flex items-center space-x-2">
                       <Code className="h-4 w-4" />
                       <span>Code</span>
@@ -432,40 +441,63 @@ export default function Dashboard() {
                       <Eye className="h-4 w-4" />
                       <span>Preview</span>
                     </TabsTrigger>
+                    <TabsTrigger value="terminal" className="flex items-center space-x-2">
+                      <Terminal className="h-4 w-4" />
+                      <span>Terminal</span>
+                    </TabsTrigger>
                   </TabsList>
                 </div>
 
                 <TabsContent value="code" className="h-[calc(100%-3rem)] m-0">
                   {selectedFile ? (
                     <div className="h-full">
-                      <div className="border-b px-4 py-2 bg-muted/30">
-                        <span className="text-sm font-mono">{selectedFile.path}</span>
+                      <div className="border-b px-4 py-3 bg-gray-50">
+                        <span className="text-sm font-mono text-gray-700">{selectedFile.path}</span>
                       </div>
-                      <ScrollArea className="h-[calc(100%-2.5rem)]">
-                        <pre className="p-4 text-sm font-mono">
-                          <code>{selectedFile.content}</code>
+                      <ScrollArea className="h-[calc(100%-3rem)]">
+                        <pre className="p-6 text-sm font-mono leading-relaxed">
+                          <code className="text-gray-800">{selectedFile.content}</code>
                         </pre>
                       </ScrollArea>
                     </div>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      Select a file to view its contents
+                    <div className="h-full flex items-center justify-center text-gray-500 bg-gray-50">
+                      <div className="text-center">
+                        <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                        <p>Select a file to view its contents</p>
+                      </div>
                     </div>
                   )}
                 </TabsContent>
 
                 <TabsContent value="preview" className="h-[calc(100%-3rem)] m-0">
-                  <div className="h-full flex items-center justify-center bg-muted/30">
+                  <div className="h-full flex items-center justify-center bg-gray-50">
                     <div className="text-center">
-                      <Zap className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Live Preview</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Preview functionality coming soon
+                      <Globe className="h-16 w-16 text-gray-400 mx-auto mb-6" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-3">Live Preview</h3>
+                      <p className="text-gray-600 mb-6 max-w-md">
+                        Preview functionality coming soon. You'll be able to see your app running live.
                       </p>
-                      <Button variant="outline">
+                      <Button variant="outline" className="border-gray-300">
                         <Play className="h-4 w-4 mr-2" />
                         Run Preview
                       </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="terminal" className="h-[calc(100%-3rem)] m-0">
+                  <div className="h-full bg-black text-green-400 font-mono text-sm">
+                    <div className="p-4">
+                      <div className="mb-2">
+                        <span className="text-gray-500">$</span> npm install
+                      </div>
+                      <div className="mb-2 text-gray-400">Installing dependencies...</div>
+                      <div className="mb-2">
+                        <span className="text-gray-500">$</span> npm start
+                      </div>
+                      <div className="mb-2 text-gray-400">Starting development server...</div>
+                      <div className="text-green-400">✓ Server running on http://localhost:3000</div>
                     </div>
                   </div>
                 </TabsContent>
@@ -473,9 +505,12 @@ export default function Dashboard() {
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (
-          <div className="h-full flex items-center justify-center">
-            <Card className="w-full max-w-md">
+          <div className="h-full flex items-center justify-center bg-gray-50">
+            <Card className="w-full max-w-md mx-4">
               <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Zap className="h-8 w-8 text-red-600" />
+                </div>
                 <CardTitle>Generation Failed</CardTitle>
                 <CardDescription>
                   There was an error generating your application
@@ -484,7 +519,7 @@ export default function Dashboard() {
               <CardContent>
                 <Button 
                   onClick={() => startGeneration(project)}
-                  className="w-full"
+                  className="w-full bg-black hover:bg-gray-800"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Retry Generation
